@@ -19,21 +19,20 @@ def normalize_and_prepare_dataset(path):
         ds = ds.drop_vars(empty_vars)
 
     # Rename 'valid_time' coordinate/dimension to 'time'
-    # This preserves the dimension while giving it the canonical name
     if "valid_time" in ds.coords or "valid_time" in ds.dims:
         print("  Renaming 'valid_time' -> 'time'")
         ds = ds.rename({"valid_time": "time"})
 
     if "time" in ds.coords:
-        # sometimes times are integers/strings so we need to convert
-        try:
-            if not np.issubdtype(ds["time"].dtype, np.datetime64):
-                ds["time"] = ("time", pd.to_datetime(ds["time"].values))
-        except Exception as e:
-            print("  Warning converting time to datetime:", e)
+        # ensure true datetimes
+        if not np.issubdtype(ds["time"].dtype, np.datetime64):
+            ds["time"] = ("time", pd.to_datetime(ds["time"].values))
 
-        # Normalise timestamps to hourly resolution
-        ds["time"] = ("time", pd.to_datetime(ds["time"].values).round("H"))
+        # round to hour 
+        ds["time"] = ("time", pd.to_datetime(ds["time"].values).round("h"))
+
+        # floor to day so 00:00 and 06:00 become the same day label
+        ds = ds.assign_coords(time=ds["time"].dt.floor("D").data)
 
     # Wrap lon if needed and sort coords 
     if float(ds.longitude.max()) > 180:
@@ -46,19 +45,18 @@ def normalize_and_prepare_dataset(path):
 
     return ds
 
-
-# load and prepare each file
+# prepare each file 
 prepared = [normalize_and_prepare_dataset(p) for p in input_files]
 
-# Align files on a common time / lat / lon grid using outer join for time
+# align (outer join) and merge
 print("Aligning datasets (outer join on shared coords)...")
 aligned = xr.align(*prepared, join="outer", copy=False)
+print("Merging aligned datasets.")
+ds_merged = xr.merge(aligned, compat="override")
 
-# Merge aligned datasets
-ds_merged = xr.merge(aligned, compat="override")  # 'override' if small attr conflicts are ok
+# groupby time (already floored) and aggregate duplicates
+ds_daily_merged = ds_merged.groupby("time").mean()
 
-
-# Save merged dataset
 output_path = "./ERA_data/ERA5_merged.nc"
-ds_merged.to_netcdf(output_path)
+ds_daily_merged.to_netcdf(output_path)
 print(f"Merged dataset saved to: {output_path}")
