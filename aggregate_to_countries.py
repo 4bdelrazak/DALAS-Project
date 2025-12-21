@@ -156,7 +156,7 @@ def aggregate_to_countries(ds, regions, mask, weights):
 
 
 # 5. CONVERT TO DATAFRAME
-def to_tidy_dataframe(ds_country: xr.Dataset) -> pd.DataFrame:
+def to_tidy_dataframe(ds_country: xr.Dataset, cams=False) -> pd.DataFrame:
     # Convert country x time x variable dataset to tidy DataFrame.
 
     print("Converting aggregated dataset to DataFrame...")
@@ -165,7 +165,10 @@ def to_tidy_dataframe(ds_country: xr.Dataset) -> pd.DataFrame:
     df = ds_country.to_dataframe().reset_index()
 
     if "time" not in df.columns:
-        raise RuntimeError("No 'time' column present after aggregation. Check time coordinate.")
+        if cams:
+            df = df.rename(columns={'valid_time' : 'time'})
+        else:
+            raise RuntimeError("No 'time' column present after aggregation. Check time coordinate.")
     if not np.issubdtype(df["time"].dtype, np.datetime64):
         df["time"] = pd.to_datetime(df["time"])
 
@@ -191,11 +194,11 @@ def to_tidy_dataframe(ds_country: xr.Dataset) -> pd.DataFrame:
 
 
 if __name__ == "__main__":
-    # path = './CAMS_data/data_allhours_sfc.nc'
-    path = './ERA_data/ERA5_merged.nc'
+    path = './CAMS_data/data_allhours_sfc.nc'
+    # path = './ERA_data/ERA5_merged.nc'
 
-    # output_csv = "CAMS_EAC4_countries_monthly_2003_2024.csv"
-    output_csv = "ERA5_aggregated.csv"
+    output_csv = "CAMS_aggregated.csv"
+    # output_csv = "ERA5_aggregated.csv"
 
     raw_dataset = xr.open_dataset(path)
 
@@ -209,7 +212,7 @@ if __name__ == "__main__":
 
     ds_country = aggregate_to_countries(ds, regions, mask, weights)
 
-    df = to_tidy_dataframe(ds_country)
+    df = to_tidy_dataframe(ds_country, cams=True)
 
     print(f"Saving CSV to: {output_csv}")
     df.to_csv(output_csv, index=False)
