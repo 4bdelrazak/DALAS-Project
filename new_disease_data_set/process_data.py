@@ -7,6 +7,18 @@ output_path = "GBD_data.csv"
 
 df = pd.read_csv(input_path)
 
+# Define the set of (small) countries to remove
+countries_to_remove = {
+    'Northern Mariana Islands', 'Micronesia (Federated States of)', 'Palau', 
+    'Singapore', 'South Sudan', 'Tokelau', 'Guam', 'Maldives', 
+    'Marshall Islands', 'Malta', 'Niue', 'Dominica', 'Grenada', 
+    'Nauru', 'American Samoa', 'Bermuda', 'Monaco', 'San Marino', 
+    'Cook Islands', 'Barbados', 'Saint Kitts and Nevis', 'Tuvalu', 'Tonga'
+}
+
+df = df[~df['location'].isin(countries_to_remove)]
+
+
 df["sex"] = df["sex"].str.lower()
 
 # Create pivot table
@@ -32,6 +44,8 @@ for col in flattened_df.columns:
         clean_columns.append(col.capitalize())
 
 flattened_df.columns = clean_columns
+
+
 
 
 countries_map = {
