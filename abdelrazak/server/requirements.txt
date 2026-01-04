@@ -1,0 +1,22 @@
+# Respiratory Disease Risk Prediction API - Server Dependencies
+# Install: pip install -r requirements.txt
+
+# Web Framework
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+pydantic>=2.5.0
+
+# Data Processing
+numpy>=1.24.0
+pandas>=2.0.0
+
+# Machine Learning (for loading models)
+scikit-learn>=1.3.0
+joblib>=1.3.0
+
+# CORS support (included in fastapi but explicit)
+python-multipart>=0.0.6
+
+# Optional: for async support
+httpx>=0.25.0
+
